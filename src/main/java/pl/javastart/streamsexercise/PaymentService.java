@@ -34,7 +34,7 @@ class PaymentService {
     List<Payment> findPaymentsSortedByDateDesc() {
         return paymentRepository.findAll()
                 .stream()
-                .sorted(Comparator.comparing(Payment::getPaymentDate, Comparator.reverseOrder()))
+                .sorted(Comparator.comparing(Payment::getPaymentDate).reversed())
                 .collect(Collectors.toList());
         //throw new RuntimeException("Not implemented");
     }
@@ -45,7 +45,7 @@ class PaymentService {
     List<Payment> findPaymentsSortedByItemCountAsc() {
         return paymentRepository.findAll()
                 .stream()
-                .sorted(Comparator.comparing((Payment p) -> p.getPaymentItems().size()))
+                .sorted(Comparator.comparing(p -> p.getPaymentItems().size()))
                 .collect(Collectors.toList());
 
         //throw new RuntimeException("Not implemented");
@@ -57,7 +57,7 @@ class PaymentService {
     List<Payment> findPaymentsSortedByItemCountDesc() {
         return paymentRepository.findAll()
                 .stream()
-                .sorted(Comparator.comparing((Payment p) -> -p.getPaymentItems().size()))
+                .sorted(Comparator.comparing(p -> -p.getPaymentItems().size()))
                 .collect(Collectors.toList());
         //throw new RuntimeException("Not implemented");
     }
@@ -77,11 +77,7 @@ class PaymentService {
     Znajdź i zwróć płatności dla aktualnego miesiąca
      */
     List<Payment> findPaymentsForCurrentMonth() {
-        return paymentRepository.findAll()
-                .stream()
-                .filter(p -> YearMonth.of(p.getPaymentDate().getYear(), p.getPaymentDate().getMonth())
-                        .equals(dateTimeProvider.yearMonthNow()))
-                .collect(Collectors.toList());
+        return findPaymentsForGivenMonth(dateTimeProvider.yearMonthNow());
         //throw new RuntimeException("Not implemented");
     }
 
@@ -168,15 +164,17 @@ class PaymentService {
     Set<Payment> findPaymentsWithValueOver(int value) {
         return paymentRepository.findAll()
                 .stream()
-                .filter(p -> (p.getPaymentItems()
-                        .stream()
-                                .map(PaymentItem::getFinalPrice)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add).compareTo(BigDecimal.valueOf(value)) > 0
-                        )
-                )
+                .filter((p -> getPaymentValue(p).compareTo(BigDecimal.valueOf(value)) > 0))
                 .collect(Collectors.toSet());
 
         //throw new RuntimeException("Not implemented");
+    }
+
+    BigDecimal getPaymentValue(Payment p) {
+        return p.getPaymentItems()
+                .stream()
+                .map(PaymentItem::getFinalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
 }
